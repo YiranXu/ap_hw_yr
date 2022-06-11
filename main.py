@@ -1,4 +1,5 @@
 from fastapi import FastAPI, File, UploadFile, Form
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn import run
 import os
@@ -11,7 +12,7 @@ import PIL
 import PIL.Image
 import numpy as np
 
-from data.components import read_imagefile,predict
+from data.components import read_imagefile,predict,save_history_results
 
 import logging
 
@@ -19,8 +20,6 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__) 
 
 app = FastAPI()
-#model_dir = "my_model/1/"
-#loaded_model = load_model('my_model/1/')
 
 origins = ["*"]
 methods = ["*"]
@@ -50,11 +49,16 @@ async def get_image_prediction_api(image: UploadFile = File(...)):
     """
     logger.info('predict_image POST request performed')
     logger.info('filename '+image.filename)
-
+    filename=image.filename
     image = read_imagefile(await image.read())
-    response=predict(image)
+    response=predict(image,filename)
     
     return response
+
+@app.get("/history/")
+async def get_prediction_history():
+    logger.info('get_prediction_history GET request performed')
+    return FileResponse('history.csv')
 
 if __name__ == "__main__":
 	port = int(os.environ.get('PORT', 5000))
