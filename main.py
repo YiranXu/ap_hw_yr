@@ -33,11 +33,9 @@ app.add_middleware(
     allow_headers = headers    
 )
 
-#class_names=['NG','OK']
 @app.get("/")
 async def root():
     return {"message": "Welcome to the iphone defect detection classification API!"}
-
 
 @app.post("/predict/")
 async def get_image_prediction_api(image: UploadFile = File(...)):
@@ -57,8 +55,15 @@ async def get_image_prediction_api(image: UploadFile = File(...)):
 
 @app.get("/history/")
 async def get_prediction_history():
+    """
+    A function to return all the prediction history by reading the history datahase(a csv file storing all the history prediction information)
+    """
     logger.info('get_prediction_history GET request performed')
     return FileResponse('history.csv')
+
+@app.get("/metadata")
+async def get_metadata():
+    return {"model metadata":"my_model/1/"}
 
 if __name__ == "__main__":
 	port = int(os.environ.get('PORT', 5000))
