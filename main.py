@@ -13,7 +13,7 @@ import PIL.Image
 import numpy as np
 
 from data.components import read_imagefile,predict,save_history_results
-
+from classification_model import read_data,train_validation_split,transform_data,train_model,save_model
 import logging
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
@@ -56,15 +56,30 @@ async def get_image_prediction_api(image: UploadFile = File(...)):
 @app.get("/history/")
 async def get_prediction_history():
     """
-    A function to return all the prediction history by reading the history datahase(a csv file storing all the history prediction information)
+    A function to return all the prediction history 
+    by reading the history datahase(a csv file storing all the history prediction information)
     """
     logger.info('get_prediction_history GET request performed')
     return FileResponse('history.csv')
 
 @app.get("/metadata")
 async def get_metadata():
-    return {"model metadata":"my_model/1/"}
+    return {"model metadata":"my_model/1/"} 
 
+@app.post('/train')
+async def retrain(datapath='dataset'):
+    """
+    :params dataset folder name
+    """
+    try:
+        data_dir=read_data(datapath)
+        train_ds,val_ds,class_names=train_validation_split(data_dir)
+        normalized_ds=transform_data(train_ds)
+        model=train_model(normalized_ds,val_ds,epochs=5)
+        save_model(model)
+        return {'success'}
+    except:
+        return {'fail'}
 if __name__ == "__main__":
 	port = int(os.environ.get('PORT', 5000))
 	run(app, host="0.0.0.0", port=port)

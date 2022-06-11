@@ -10,18 +10,20 @@ import PIL
 import PIL.Image
 import numpy as np
 
-data_dir = pathlib.Path('dataset')
-
-NG_image_count = len(list(data_dir.glob('NG/*.jpg')))
-OK_image_count = len(list(data_dir.glob('OK/*.jpg')))
-
-okimages = list(data_dir.glob('OK/*'))
-
 batch_size = 5
 img_height = 224
 img_width = 224
 
-train_ds = tf.keras.utils.image_dataset_from_directory(
+
+def read_data(data_dir='dataset'):
+  return pathlib.Path('dataset')
+#data_dir = read_data()
+
+def train_validation_split(data_dir):
+  """
+  :param data_dir is the returned value from read_data function
+  """
+  train_ds = tf.keras.utils.image_dataset_from_directory(
   data_dir,
   validation_split=0.2,
   subset="training",
@@ -29,7 +31,7 @@ train_ds = tf.keras.utils.image_dataset_from_directory(
   image_size=(img_height, img_width),
   batch_size=batch_size)
 
-val_ds = tf.keras.utils.image_dataset_from_directory(
+  val_ds = tf.keras.utils.image_dataset_from_directory(
   data_dir,
   validation_split=0.2,
   subset="validation",
@@ -37,26 +39,28 @@ val_ds = tf.keras.utils.image_dataset_from_directory(
   image_size=(img_height, img_width),
   batch_size=batch_size)
 
-class_names = train_ds.class_names
+  class_names = train_ds.class_names
+  return train_ds,val_ds,class_names
 
-model = tf.keras.applications.MobileNet()
+def transform_data(train_ds):
+  normalization_layer = tf.keras.layers.Rescaling(1./255)
+  normalized_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
+  return normalized_ds
 
-normalization_layer = tf.keras.layers.Rescaling(1./255)
-normalized_ds = train_ds.map(lambda x, y: (normalization_layer(x), y))
-image_batch, labels_batch = next(iter(normalized_ds))
-
-model.compile(optimizer='adam',
+def train_model(normalized_ds,val_ds,epochs=5):
+  model = tf.keras.applications.MobileNet()
+  model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
-
-epochs=5
-history = model.fit(
-  train_ds,
+  history = model.fit(
+  normalized_ds,
   validation_data=val_ds,
   epochs=epochs
-)
+  )
+  return model
 
-model.save('my_model/1') 
+def save_model(model):  
+  model.save('my_model/1') 
 
 
 
